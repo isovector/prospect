@@ -8,9 +8,30 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE UndecidableInstances  #-}
-{-# OPTIONS_GHC -Wall  #-}
 
-module Control.Monad.Accursed where
+module Control.Monad.Accursed
+  ( -- * Core type
+    Accursed (..)
+  , curse
+  , Curse (..)
+
+  -- * Analyzing 'Accursed'
+  , channel
+  , analyze
+  , runAccursed
+
+  -- * Conversions from 'F.Free'
+  , corrupt
+
+  -- * 'F.Free' compatible interface
+  , retract
+  , F.liftF
+  , iter
+  , iterA
+  , iterM
+  , hoistAccursed
+  , foldAccursed
+  ) where
 
 import           Control.Applicative (Alternative (..))
 import           Control.Exception (Exception, throw, catch)
@@ -131,6 +152,74 @@ analyze c = runWriter . runMaybeT . go
              in pure $ go z)
           (\(_ :: Curse) -> pure $ empty)
     {-# INLINE go #-}
+
+
+------------------------------------------------------------------------------
+-- | Tear down an 'Accursed' by way of 'channel'.
+runAccursed
+    :: (Functor f, Generic1 f, GChannel f (Rep1 f))
+    => Accursed f a
+    -> (Maybe a, [f ()])
+runAccursed = analyze channel
+
+
+------------------------------------------------------------------------------
+-- |
+-- 'retract' is the left inverse of 'lift' and 'liftF'
+--
+-- @
+-- 'retract' . 'lift' = 'id'
+-- 'retract' . 'liftF' = 'id'
+-- @
+retract :: (Monad f, Alternative f) => Accursed f a -> f a
+retract (Pure a)  = return a
+retract (Free as) = as >>= retract
+retract Empty     = empty
+
+
+--------------------------------------------------------------------------------
+-- | Tear down an 'Accursed' using iteration.
+iter :: Functor f => (f (Maybe a) -> Maybe a) -> Accursed f a -> Maybe a
+iter phi = go
+  where
+    go (Pure a) = Just a
+    go (Free m) = phi (go <$> m)
+    go Empty    = Nothing
+
+
+--------------------------------------------------------------------------------
+-- | Like 'iter' for applicative values.
+iterA
+    :: (Applicative p, Alternative p, Functor f)
+    => (f (p a) -> p a)
+    -> Accursed f a
+    -> p a
+iterA _   (Pure x) = pure x
+iterA phi (Free f) = phi (iterA phi <$> f)
+iterA _ Empty      = empty
+
+
+--------------------------------------------------------------------------------
+-- | Like 'iter' for monadic values.
+iterM :: (Monad m, Alternative m, Functor f)
+      => (f (m a) -> m a)
+      -> Accursed f a
+      -> m a
+iterM _   (Pure x) = return x
+iterM phi (Free f) = phi (iterM phi <$> f)
+iterM _ Empty      = empty
+
+
+------------------------------------------------------------------------------
+-- | A 'Monad' homomorphism over 'Accursed'.
+foldAccursed
+    :: (Monad m, Alternative m)
+    => (forall x . f x -> m x)
+    -> Accursed f a
+    -> m a
+foldAccursed _ (Pure a)  = return a
+foldAccursed f (Free as) = f as >>= foldAccursed f
+foldAccursed _ Empty     = empty
 
 
 ------------------------------------------------------------------------------
