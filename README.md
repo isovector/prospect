@@ -23,10 +23,10 @@ and runtime crashes.
 ## Usage
 
 `Accursed` is at its core, a free monad with an `Alternative` instance. It
-introduces a single primitive, `curse :: Accursed f a`, the forcing of which
-corresponds to an `empty` when evaluated in the context of a bind. Extreme care
-should be used; if an unevaluated `curse` manages to escape from `Accursed`, you
-will find yourself chasing exceptions at runtime.
+introduces a single primitive, `unholyPact :: Accursed f a`, the forcing of
+which corresponds to an `empty` when evaluated in the context of a bind. Extreme
+care should be used; if an unevaluated `unholyPact` manages to escape from
+`Accursed`, you will find yourself chasing exceptions at runtime.
 
 In all other respects, `Accursed` is equivalent to the `Free` monad from `free`,
 and has a corresponding interface.

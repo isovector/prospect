@@ -12,8 +12,8 @@
 module Control.Monad.Accursed
   ( -- * Core type
     Accursed (..)
-  , curse
-  , Curse (..)
+  , unholyPact
+  , UnholyPact (..)
 
   -- * Analyzing 'Accursed'
   , channel
@@ -48,10 +48,10 @@ import           System.IO.Unsafe (unsafePerformIO)
 
 
 ------------------------------------------------------------------------------
--- | The 'Accursed' monad in which evaluation of 'curse' will be interpreted as
--- 'empty' at the time it happens. Under very specific circumstances, this
--- allows some degree of static analysis over free monads. The rest of the time
--- it will lead to terror, madness and runtime crashes.
+-- | The 'Accursed' monad in which evaluation of 'unholyPact' will be
+-- interpreted as 'empty' at the time it happens. Under very specific
+-- circumstances, this allows some degree of static analysis over free monads.
+-- The rest of the time it will lead to terror, madness and runtime crashes.
 data Accursed f a
   = Pure a
   | Free (f (Accursed f a))
@@ -63,7 +63,7 @@ instance Functor f => Functor (Accursed f) where
     catch
       (let !_ = a
         in pure $ Pure $ f a)
-      (\(_ :: Curse) -> pure $ Empty)
+      (\(_ :: UnholyPact) -> pure Empty)
   fmap f (Free fa) = Free (fmap f <$> fa)
   fmap _ Empty     = Empty
   {-# INLINE fmap #-}
@@ -77,19 +77,19 @@ instance Functor f => Applicative (Accursed f) where
       (let !_ = a
            !_ = b
         in pure $ Pure $ a b)
-      (\(_ :: Curse) -> pure $ Empty)
+      (\(_ :: UnholyPact) -> pure Empty)
   Pure a <*> Free mb = unsafePerformIO $
     catch
       (let !_ = a
            !_ = mb
         in pure $ Free $ fmap a <$> mb)
-      (\(_ :: Curse) -> pure $ Empty)
+      (\(_ :: UnholyPact) -> pure Empty)
   Free ma <*> b = unsafePerformIO $
     catch
       (let !_ = ma
            !_ = b
         in pure $ Free $ (<*> b) <$> ma)
-      (\(_ :: Curse) -> pure $ Empty)
+      (\(_ :: UnholyPact) -> pure Empty)
   _ <*> Empty = Empty
   {-# INLINE (<*>) #-}
 
@@ -101,7 +101,7 @@ instance Functor f => Monad (Accursed f) where
     catch
       (let !_ = m
         in pure $ Free ((>>= f) <$> m))
-      (\(_ :: Curse) -> pure $ Empty)
+      (\(_ :: UnholyPact) -> pure Empty)
   Empty >>= _ = Empty
   {-# INLINE (>>=) #-}
 
@@ -154,14 +154,14 @@ analyze c = runWriter . runMaybeT . go
       catch
         (let !_ = a
           in pure $ pure a)
-        (\(_ :: Curse) -> pure $ empty)
+        (\(_ :: UnholyPact) -> pure empty)
     go (Free f) = do
       tell . pure $ () <$ f
       unsafePerformIO $
         catch
           ( let !z = c f
              in pure $ go z)
-          (\(_ :: Curse) -> pure $ empty)
+          (\(_ :: UnholyPact) -> pure empty)
     {-# INLINE go #-}
 
 
@@ -234,18 +234,18 @@ foldAccursed _ Empty     = empty
 
 
 ------------------------------------------------------------------------------
--- | The underlying machinery of 'curse'.
-data Curse = Curse
+-- | The underlying machinery of 'unholyPact'.
+data UnholyPact = UnholyPact
   deriving (Show, Eq)
-instance Exception Curse
+instance Exception UnholyPact
 
 
 ------------------------------------------------------------------------------
--- | A 'curse' is unholy tretchery whose evaluation can be caught in the
+-- | An 'unholyPact' is tretchery whose evaluation can be caught in the
 -- 'Accursed' monad. It can be used to follow continuations in a free monad
 -- until it branches.
-curse :: Functor f => Accursed f a
-curse = pure $ throw Curse
+unholyPact :: Functor f => Accursed f a
+unholyPact = pure $ throw UnholyPact
 
 
 ------------------------------------------------------------------------------
@@ -288,7 +288,7 @@ instance GChannel p V1 where
 
 instance Functor p => GChannel p (Rec1 ((->) a)) where
   gchannel (Rec1 z) = do
-    c <- curse
+    c <- unholyPact
     z c
   {-# INLINE gchannel #-}
 

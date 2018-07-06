@@ -56,19 +56,19 @@ main = hspec $ do
       !x <- cont
       pure "error"
 
-    it "should not crash for curse" $ do
-      analyze channel (curse @Pattern @Int)
+    it "should not crash for unholyPact" $ do
+      analyze channel (unholyPact @Pattern @Int)
         `shouldBe` (Nothing, [])
 
-    it "should not crash for curse >>= pure" $ do
-      analyze channel (curse @Pattern @Int >>= pure)
+    it "should not crash for unholyPact >>= pure" $ do
+      analyze channel (unholyPact @Pattern @Int >>= pure)
         `shouldBe` (Nothing, [])
 
     it "nothing you hold dear is safe" $ do
       let (u, z) = analyze channel $ do
-            c <- curse @Pattern @Int
+            c <- unholyPact @Pattern @Int
             action c
-      evaluate (force (u, z)) `shouldThrow` (== Curse)
+      evaluate (force (u, z)) `shouldThrow` (== UnholyPact)
 
     testAccursed "should stop before branching"
                  Nothing
