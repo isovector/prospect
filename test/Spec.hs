@@ -4,6 +4,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RankNTypes       #-}
 {-# LANGUAGE TemplateHaskell  #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# OPTIONS_GHC -O -fplugin Test.Inspection.Plugin #-}
 
@@ -16,7 +17,6 @@ import Control.Monad.Free (MonadFree, liftF)
 import GHC.Generics
 import Test.Hspec
 import Test.Inspection
-
 
 
 
@@ -41,12 +41,26 @@ main = hspec $ do
       action 1
       action 2
 
+    testAccursed "should not crash for a single continuation"
+                 Nothing
+                 [ contT
+                 ] $ do
+      cont
+
     testAccursed "should stop on an explicit bang pattern"
                  Nothing
                  [ contT
                  ] $ do
       !x <- cont
       pure "error"
+
+    it "should not crash for curse" $ do
+      analyze channel (curse @Pattern @Int)
+        `shouldBe` (Nothing, [])
+
+    it "should not crash for curse >>= pure" $ do
+      analyze channel (curse @Pattern @Int >>= pure)
+        `shouldBe` (Nothing, [])
 
     testAccursed "should stop before branching"
                  Nothing
@@ -61,6 +75,7 @@ main = hspec $ do
          then pure True
          else cont
 
+
   describe "Channel" $ do
     it "should optimize away its generics" $ do
       $(inspectTest $ hasNoGenerics 'channelPattern) `shouldSatisfy` isSuccess
@@ -69,7 +84,7 @@ main = hspec $ do
 data Pattern a
   = Cont (Bool -> a)
   | Action Int a
-  deriving (Functor, Generic, Generic1)
+  deriving (Functor, Generic1)
 
 instance Eq a => Eq (Pattern a) where
   Cont f == Cont g
@@ -100,6 +115,7 @@ isSuccess :: Result -> Bool
 isSuccess (Success _) = True
 isSuccess (Failure _) = False
 
+
 testAccursed
     :: (Eq a, Show a)
     => String
@@ -110,6 +126,6 @@ testAccursed
 testAccursed z v cs m =
   let (a, ms) = analyze channel . corrupt $ improve m
    in it z $ do
-        a `shouldBe` v
+        a  `shouldBe` v
         ms `shouldBe` cs
 

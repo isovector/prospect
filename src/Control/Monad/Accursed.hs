@@ -16,6 +16,7 @@ import           Control.Applicative (Alternative (..))
 import           Control.Exception (Exception, throw, catch)
 import qualified Control.Monad.Free as F
 import           Control.Monad.Trans.Maybe (runMaybeT)
+import           Control.Monad.Trans.Class (MonadTrans (..))
 import           Control.Monad.Writer.Strict (runWriter, tell)
 import           GHC.Generics
 import           GHC.TypeLits
@@ -85,6 +86,12 @@ instance Functor f => Alternative (Accursed f) where
   empty = Empty
   Empty <|> a = a
   a     <|> _ = a
+
+instance MonadTrans Accursed where
+  lift f = Free $ fmap pure f
+
+instance Functor f => F.MonadFree f (Accursed f) where
+  wrap = Free
 
 
 ------------------------------------------------------------------------------
