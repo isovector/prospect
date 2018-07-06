@@ -12,12 +12,12 @@
 
 ## Overview
 
-The `Accursed` monad is a thing of true horror. Upon those who are brave enough
-to plumb its depths, it bestows the ability to statically explore functions, and
-by extension, monads. Such power, however, does not come for free; using
-`Accursed` is an implicit pact with the Eldrich horrors. Feckless wanderers into
-this territory will be rewarded with naught but terror, madness, and runtime
-crashes.
+The `Accursed` monad is a thing of unimaginable horror. Upon those who are brave
+enough to plumb its depths, it bestows the ability to statically explore
+functions, and by extension, monads. Such power, however, does not come for
+free; using `Accursed` is an implicit pact with the Eldrich horrors. Feckless
+wanderers into this territory will be rewarded with naught but terror, madness,
+and runtime crashes.
 
 
 ## Usage
