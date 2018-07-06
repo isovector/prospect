@@ -22,6 +22,7 @@ module Control.Monad.Accursed
 
   -- * Conversions from 'F.Free'
   , corrupt
+  , improve
 
   -- * 'F.Free' compatible interface
   , retract
@@ -35,9 +36,10 @@ module Control.Monad.Accursed
 
 import           Control.Applicative (Alternative (..))
 import           Control.Exception (Exception, throw, catch)
+import           Control.Monad.Codensity (lowerCodensity)
 import qualified Control.Monad.Free as F
-import           Control.Monad.Trans.Maybe (runMaybeT)
 import           Control.Monad.Trans.Class (MonadTrans (..))
+import           Control.Monad.Trans.Maybe (runMaybeT)
 import           Control.Monad.Writer.Strict (runWriter, tell)
 import           GHC.Generics
 import           GHC.TypeLits
@@ -113,6 +115,15 @@ instance MonadTrans Accursed where
 
 instance Functor f => F.MonadFree f (Accursed f) where
   wrap = Free
+
+
+------------------------------------------------------------------------------
+-- | Improve the asymptotics of building an 'Accursed'.
+improve
+    :: Functor f
+    => (forall m. (F.MonadFree f m, Alternative m) => m a)
+    -> Accursed f a
+improve = lowerCodensity
 
 
 ------------------------------------------------------------------------------

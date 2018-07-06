@@ -11,8 +11,8 @@
 module Main where
 
 import Control.Applicative
+import Control.Monad (guard)
 import Control.Monad.Accursed
-import Control.Monad.Codensity
 import Control.Monad.Free (MonadFree, liftF)
 import GHC.Generics
 import Test.Hspec
@@ -75,6 +75,9 @@ main = hspec $ do
          then pure True
          else cont
 
+    testAccursed "should lift Alternative instances"
+                 Nothing
+                 [ ] $ guard False
 
   describe "Channel" $ do
     it "should optimize away its generics" $ do
@@ -121,10 +124,10 @@ testAccursed
     => String
     -> Maybe a
     -> [Pattern ()]
-    -> (forall m. MonadFree Pattern m => m a)
+    -> (forall m. (MonadFree Pattern m, Alternative m) => m a)
     -> SpecWith (Arg Expectation)
 testAccursed z v cs m =
-  let (a, ms) = runAccursed . corrupt $ improve m
+  let (a, ms) = runAccursed $ improve m
    in it z $ do
         a  `shouldBe` v
         ms `shouldBe` cs

@@ -26,6 +26,7 @@ library:
     - mtl
     - transformers
     - free
+    - kan-extensions
 
 tests:
   accursed-test:
