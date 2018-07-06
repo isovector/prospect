@@ -124,7 +124,7 @@ testAccursed
     -> (forall m. MonadFree Pattern m => m a)
     -> SpecWith (Arg Expectation)
 testAccursed z v cs m =
-  let (a, ms) = analyze channel . corrupt $ improve m
+  let (a, ms) = runAccursed . corrupt $ improve m
    in it z $ do
         a  `shouldBe` v
         ms `shouldBe` cs
