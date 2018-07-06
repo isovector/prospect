@@ -11,6 +11,8 @@
 module Main where
 
 import Control.Applicative
+import Control.DeepSeq (NFData (..), force)
+import Control.Exception (evaluate)
 import Control.Monad (guard)
 import Control.Monad.Accursed
 import Control.Monad.Free (MonadFree, liftF)
@@ -62,6 +64,12 @@ main = hspec $ do
       analyze channel (curse @Pattern @Int >>= pure)
         `shouldBe` (Nothing, [])
 
+    it "nothing you hold dear is safe" $ do
+      let (u, z) = analyze channel $ do
+            c <- curse @Pattern @Int
+            action c
+      evaluate (force (u, z)) `shouldThrow` (== Curse)
+
     testAccursed "should stop before branching"
                  Nothing
                  [ contT
@@ -99,7 +107,12 @@ instance Eq a => Eq (Pattern a) where
 
 instance Show (Pattern a) where
   show (Cont _)      = "Cont"
-  show (Action _ _ ) = "Action"
+  show (Action i _ ) = "Action " ++ show i
+
+
+instance NFData a => NFData (Pattern a) where
+  rnf (Cont f) = seq f ()
+  rnf (Action i a) =  seq i ()
 
 
 cont :: MonadFree Pattern m => m Bool

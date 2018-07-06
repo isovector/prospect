@@ -42,3 +42,4 @@ tests:
     - free
     - kan-extensions
     - inspection-testing
+    - deepseq

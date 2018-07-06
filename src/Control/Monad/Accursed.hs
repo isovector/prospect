@@ -236,7 +236,7 @@ foldAccursed _ Empty     = empty
 ------------------------------------------------------------------------------
 -- | The underlying machinery of 'curse'.
 data Curse = Curse
-  deriving Show
+  deriving (Show, Eq)
 instance Exception Curse
 
 
