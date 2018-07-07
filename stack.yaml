@@ -7,5 +7,5 @@ packages:
       git: https://github.com/nomeata/inspection-testing.git
       commit: 0804c708092fed595dc4650afdd048dc1234ea4d
 
-
+allow-newer: true
 

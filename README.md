@@ -1,5 +1,10 @@
 # prospect
 
+[![Build Status](https://travis-ci.org/isovector/prospect.svg?branch=master)](https://travis-ci.org/isovector/prospect) | [Hackage][hackage]
+
+[hackage]: https://hackage.haskell.org/package/prospect
+
+
 ## Dedication
 
 > It is absolutely necessary, for the peace and safety of mankind, that some of
