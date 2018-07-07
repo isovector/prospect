@@ -26,7 +26,7 @@ import Test.Inspection
 main :: IO ()
 main = hspec $ do
   let contT = Cont $ const ()
-  describe "Free" $ do
+  describe "prospect" $ do
     testFree "should lazily produce values"
                  (Just "hello")
                  [ contT
@@ -57,18 +57,18 @@ main = hspec $ do
       !x <- cont
       pure "error"
 
-    it "should not crash for unholyPact" $ do
-      analyze channel (pure @(Free Pattern) $ unholyPact @Int)
+    it "should not crash for guess" $ do
+      prospect (pure @(Free Pattern) $ guess @Int)
         `shouldBe` (Nothing, [])
 
-    it "should not crash for unholyPact >>= pure" $ do
-      analyze channel (pure @(Free Pattern) (unholyPact @Int) >>= pure)
+    it "should not crash for guess >>= pure" $ do
+      prospect (pure @(Free Pattern) (guess @Int) >>= pure)
         `shouldBe` (Nothing, [])
 
     it "nothing you hold dear is safe" $ do
-      let (u, z) = analyze channel $ do
-            action $ unholyPact @Int
-      evaluate (force (u, z)) `shouldThrow` (== UnholyPact)
+      let (u, z) = prospect $ do
+            action $ guess @Int
+      evaluate (force (u, z)) `shouldThrow` (== Guess)
 
     testFree "should stop before branching"
                  Nothing
@@ -83,9 +83,20 @@ main = hspec $ do
          then pure True
          else cont
 
-  describe "channel" $ do
+  describe "verify" $ do
+    it "should catch guesses" $ do
+      verify guess `shouldBe` Nothing @()
+      verify (guess + guess) `shouldBe` Nothing @Int
+      verify (guess @[()]) `shouldBe` []
+    it "should not mess with values" $ do
+      verify 0 `shouldBe` Just @Int 0
+      verify (1 + 2) `shouldBe` Just @Int 3
+    it "should respect strictness otherwise" $ do
+      verify (const 3 guess) `shouldBe` Just @Int 3
+
+  describe "explore" $ do
     it "should optimize away its generics" $ do
-      $(inspectTest $ hasNoGenerics 'channelPattern)
+      $(inspectTest $ hasNoGenerics 'explorePattern)
         `shouldSatisfy` isSuccess
 
 
@@ -121,8 +132,8 @@ action :: MonadFree Pattern m => Int -> m ()
 action i = liftF $ Action i ()
 
 
-channelPattern :: Pattern (Free Pattern a) -> Free Pattern a
-channelPattern = channel
+explorePattern :: Pattern (Free Pattern a) -> Free Pattern a
+explorePattern = explore
 
 
 isSuccess :: Result -> Bool
@@ -138,7 +149,7 @@ testFree
     -> (forall m. (MonadFree Pattern m) => m a)
     -> SpecWith (Arg Expectation)
 testFree z v cs m =
-  let (a, ms) = runAccursed $ improve m
+  let (a, ms) = prospect $ improve m
    in it z $ do
         a  `shouldBe` v
         ms `shouldBe` cs
