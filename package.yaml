@@ -1,10 +1,11 @@
-name:                accursed
+name:                prospect
 version:             0.1.0.0
-github:              "isovector/accursed"
+github:              "isovector/prospect"
 license:             BSD3
 author:              "Sandy Maguire"
 maintainer:          "sandy@sandymaguire.me"
 copyright:           "2018 Sandy Maguire"
+tested-with:         GHC == 8.0.2, GHC == 8.2.1
 
 extra-source-files:
 - README.md
@@ -14,7 +15,7 @@ extra-source-files:
 synopsis:            Explore continuations with trepidation
 category:            Control
 
-description:         Please see the README on GitHub at <https://github.com/isovector/accursed#readme>
+description:         Please see the README on GitHub at <https://github.com/isovector/prospect#readme>
 
 dependencies:
 - base >= 4.7 && < 5
@@ -30,7 +31,7 @@ library:
     - deepseq
 
 tests:
-  accursed-test:
+  prospect-test:
     main:                Spec.hs
     source-dirs:         test
     ghc-options:
@@ -38,7 +39,7 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - accursed
+    - prospect
     - hspec
     - free
     - kan-extensions
