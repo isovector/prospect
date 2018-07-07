@@ -23,10 +23,13 @@ module Control.Monad.Prospect
   , guess
   , given
   , verify
+  , ensure
+  , proceed
   , Guess (..)
   ) where
 
 import Control.Applicative (Alternative (..))
+import Control.DeepSeq (NFData, force)
 import Control.Exception (Exception, throw, catch)
 import Control.Monad.Free
 import Control.Monad.Trans.Maybe (runMaybeT)
@@ -90,6 +93,13 @@ verify = given pure
 
 
 ------------------------------------------------------------------------------
+-- | Like 'verify', but much stricter.
+ensure :: (Alternative f, NFData a) => a -> f a
+ensure = proceed pure
+{-# INLINE ensure #-}
+
+
+------------------------------------------------------------------------------
 -- | Strictly attempt a function application, returning 'empty' if the argument
 -- was a 'guess'.
 given :: Alternative f => (a -> f b) -> a -> f b
@@ -99,6 +109,17 @@ given f a = unsafePerformIO $ do
       in pure $ f a)
     (\(_ :: Guess) -> pure empty)
 {-# INLINE given #-}
+
+
+------------------------------------------------------------------------------
+-- | Like `given`, but much stricter.
+proceed :: (Alternative f, NFData a) => (a -> f b) -> a -> f b
+proceed f a = unsafePerformIO $ do
+  catch
+    (let !_ = force a
+      in pure $ f a)
+    (\(_ :: Guess) -> pure empty)
+{-# INLINE proceed #-}
 
 
 ------------------------------------------------------------------------------

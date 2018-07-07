@@ -1,4 +1,4 @@
-# accursed
+# prospect
 
 ## Dedication
 
@@ -12,29 +12,29 @@
 
 ## Overview
 
-The `Accursed` monad is a thing of unimaginable horror. Upon those who are brave
-enough to plumb its depths, it bestows the ability to statically explore
-functions, and by extension, monads. Such power, however, does not come for
-free; using `Accursed` is an implicit pact with the Eldrich horrors. Feckless
-wanderers into this territory will be rewarded with naught but terror, madness,
+`prospect` is a library that provides primitives for exploring functions, and by
+extension, monads. As such, it allows for a best-attempt static analysis of free
+monads. Such power, however, does not come for free; using `prospect` is an
+implicit promise with the Eldrich horrors that you'll tread lightly. Feckless
+wanderers into these depths will be rewarded with naught but terror, madness,
 and runtime crashes.
 
 
 ## Usage
 
-`Accursed` is at its core, a free monad with an `Alternative` instance. It
-introduces a single primitive, `unholyPact :: Accursed f a`, the forcing of
-which corresponds to an `empty` when evaluated in the context of a bind. Extreme
-care should be used; if an unevaluated `unholyPact` manages to escape from
-`Accursed`, you will find yourself chasing exceptions at runtime.
+The library provides a function, `prospect :: Free f a -> (Maybe a, [f ()])`,
+which can probe the depths of a free monad, finding as many `f` constructors as
+it can before the monad branches dynamically.
 
-In all other respects, `Accursed` is equivalent to the `Free` monad from `free`,
-and has a corresponding interface.
+Be careful when inspecting the `f ()`s, if any of them depend on variables bound
+in the monad, they will leak exceptions when you are least expecting them. It's
+a good idea to run your `f ()`s through `ensure :: Alternative m => a -> m a`
+after you've scrutinized their constructors.
 
 
 ## Example
 
-Accursed can be used to perform a best-effort static analysis of a free monad:
+`prospect` can be used to perform a best-effort static analysis of a free monad:
 
 ```haskell
 data Pattern a
@@ -52,7 +52,7 @@ action i = liftF $ Action i ()
 
 
 success :: (Maybe String, [Pattern ()]
-success = runAccursed $ do
+success = prospect $ do
   a <- cont
   action 1
   pure "success"
@@ -60,7 +60,7 @@ success = runAccursed $ do
 
 
 failure :: (Maybe String, [Pattern ()]
-failure = runAccursed $ do
+failure = prospect $ do
   a <- cont
   action 1
   if a  -- static analysis ends here, as it would require branching on the
@@ -72,6 +72,6 @@ failure = runAccursed $ do
 -- failure = (Nothing, [Cont (const ()), Action 1 ()])
 ```
 
-In these examples, we can continue analyzing an `Accursed Pattern` monad until
+In these examples, we can continue analyzing a `Free Pattern` monad until
 the result of its `Cont` continuation is forced.
 

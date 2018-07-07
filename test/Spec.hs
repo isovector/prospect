@@ -23,7 +23,9 @@ import Test.Inspection (Result (..), inspectTest, hasNoGenerics)
 
 main :: IO ()
 main = hspec $ do
-  let contT = Cont $ const ()
+  let contT = Cont  $ const ()
+      contI = ContI $ const ()
+
   describe "prospect" $ do
     testFree "should lazily produce values"
                  (Just "hello")
@@ -86,11 +88,27 @@ main = hspec $ do
       verify guess `shouldBe` Nothing @()
       verify (guess + guess) `shouldBe` Nothing @Int
       verify (guess @[()]) `shouldBe` []
+
     it "should not mess with values" $ do
       verify 0 `shouldBe` Just @Int 0
       verify (1 + 2) `shouldBe` Just @Int 3
+
     it "should respect strictness otherwise" $ do
       verify (const 3 guess) `shouldBe` Just @Int 3
+
+
+  describe "ensure" $ do
+    let (a, ms) = prospect $ action 1 >> conti >>= action
+
+    it "should crash if you're foolish" $ do
+      a `shouldBe` Just ()
+      evaluate (force $ show ms) `shouldThrow` (== Guess)
+
+    it "shouldn't crash if you're wise" $ do
+      a `shouldBe` Just ()
+      fmap ensure ms
+        `shouldBe` [Just (Action 1 ()), Just contI, Nothing]
+
 
   describe "explore" $ do
     it "should optimize away its generics" $ do
@@ -100,6 +118,7 @@ main = hspec $ do
 
 data Pattern a
   = Cont (Bool -> a)
+  | ContI (Int -> a)
   | Action Int a
   deriving (Functor, Generic1)
 
@@ -107,6 +126,7 @@ instance Eq a => Eq (Pattern a) where
   Cont f == Cont g
       = f True  == g True
      && f False == g False
+  ContI _ == ContI _ = True
   Action i a == Action j b
       = i == j
      && a == b
@@ -114,16 +134,22 @@ instance Eq a => Eq (Pattern a) where
 
 instance Show (Pattern a) where
   show (Cont _)      = "Cont"
+  show (ContI _)     = "ContI"
   show (Action i _ ) = "Action " ++ show i
 
 
 instance NFData a => NFData (Pattern a) where
-  rnf (Cont f) = seq f ()
-  rnf (Action i a) =  seq i ()
+  rnf (Cont f)     = seq f ()
+  rnf (ContI f)    = seq f ()
+  rnf (Action i a) = seq i ()
 
 
 cont :: MonadFree Pattern m => m Bool
 cont = liftF $ Cont id
+
+
+conti :: MonadFree Pattern m => m Int
+conti = liftF $ ContI id
 
 
 action :: MonadFree Pattern m => Int -> m ()
