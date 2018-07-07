@@ -10,16 +10,14 @@
 
 module Main where
 
-import Control.Applicative
 import Control.DeepSeq (NFData (..), force)
 import Control.Exception (evaluate)
-import Control.Monad (guard)
-import Control.Monad.Accursed
 import Control.Monad.Codensity (improve)
-import Control.Monad.Free
-import GHC.Generics
+import Control.Monad.Free (MonadFree, Free (..), liftF)
+import Control.Monad.Prospect
+import GHC.Generics (Generic1)
 import Test.Hspec
-import Test.Inspection
+import Test.Inspection (Result (..), inspectTest, hasNoGenerics)
 
 
 
@@ -32,8 +30,8 @@ main = hspec $ do
                  [ contT
                  , contT
                  ] $ do
-      x <- cont
-      y <- cont
+      _ <- cont
+      _ <- cont
       pure "hello"
 
     testFree "should not be cursed for producer patterns"

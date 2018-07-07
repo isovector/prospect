@@ -1,28 +1,29 @@
+{-# LANGUAGE AllowAmbiguousTypes   #-}
 {-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE DeriveFunctor         #-}
 {-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE KindSignatures        #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE UndecidableInstances  #-}
 
-module Control.Monad.Accursed
-  ( -- * Core type
-    guess
-  , Guess (..)
-
-  -- * Analyzing 'Accursed'
+module Control.Monad.Prospect
+  ( -- * Prospecting of free monads
+    prospect
+  , survey
   , explore
-  , assay
-  , prospect
 
-  -- * Observations
+  -- * Guesswork
+  , guess
   , given
   , verify
+  , Guess (..)
   ) where
 
 import Control.Applicative (Alternative (..))
@@ -38,14 +39,14 @@ import System.IO.Unsafe (unsafePerformIO)
 
 ------------------------------------------------------------------------------
 -- | Perform a best-effort analysis of a free monad.
-assay
+survey
     :: Functor f
     => (forall b. f (Free f b) -> Free f b)
        -- ^ The following function. Consider using 'explore' to get an
        -- automatic implementation for this.
     -> Free f a
     -> (Maybe a, [f ()])
-assay c = runWriter . runMaybeT . go
+survey c = runWriter . runMaybeT . go
   where
     go (Pure a) = verify a
     go (Free f) = do
@@ -54,11 +55,43 @@ assay c = runWriter . runMaybeT . go
     {-# INLINE go #-}
 
 
+------------------------------------------------------------------------------
+-- | Perform a best-effort analysis of a free monad by automatically
+-- 'explore'ing it.
+prospect
+    :: (Functor f, Generic1 f, GExplore f (Rep1 f))
+    => Free f a
+    -> (Maybe a, [f ()])
+prospect = survey explore
+
+
+------------------------------------------------------------------------------
+-- | The underlying machinery of 'guess'.
+data Guess = Guess
+  deriving (Show, Eq)
+instance Exception Guess
+
+
+------------------------------------------------------------------------------
+-- | A 'guess' is a bottom whose evaluation can be caught by way of 'verify' or
+-- 'given'. It can be used to follow continuations in a free monad until it
+-- branches.
+guess :: a
+guess = throw Guess
+{-# INLINE guess #-}
+
+
+------------------------------------------------------------------------------
+-- | Attempt to evaluate the pure value 'a', returning 'empty' if it was
+-- a 'guess'.
 verify :: Alternative f => a -> f a
 verify = given pure
 {-# INLINE verify #-}
 
 
+------------------------------------------------------------------------------
+-- | Strictly attempt a function application, returning 'empty' if the argument
+-- was a 'guess'.
 given :: Alternative f => (a -> f b) -> a -> f b
 given f a = unsafePerformIO $ do
   catch
@@ -69,33 +102,9 @@ given f a = unsafePerformIO $ do
 
 
 ------------------------------------------------------------------------------
--- | Tear down an 'Accursed' by way of 'explore'.
-prospect
-    :: (Functor f, Generic1 f, GExplore f (Rep1 f))
-    => Free f a
-    -> (Maybe a, [f ()])
-prospect = assay explore
-
-
-------------------------------------------------------------------------------
--- | The underlying machinery of 'unholyPact'.
-data Guess = Guess
-  deriving (Show, Eq)
-instance Exception Guess
-
-
-------------------------------------------------------------------------------
--- | An 'unholyPact' is tretchery whose evaluation can be caught in the
--- 'Accursed' monad. It can be used to follow continuations in a free monad
--- until it branches.
-guess :: a
-guess = throw Guess
-
-
-------------------------------------------------------------------------------
 -- | Helper class to derive 'explore' generically.
-class GExplore p f where
-  gexplore :: f (Free p b) -> Free p b
+class GExplore (p :: * -> *) f where
+  gexplore :: f b -> b
 
 instance TypeError
     (  'Text "Missing continuation parameter when attempting to derive 'explore'"
@@ -129,26 +138,28 @@ instance GExplore p Par1 where
   {-# INLINE gexplore #-}
 
 instance GExplore p g => GExplore p (f :*: g) where
-  gexplore (_ :*: b) = gexplore b
+  gexplore (_ :*: b) = gexplore @p b
   {-# INLINE gexplore #-}
 
 instance (GExplore p f, GExplore p g) => GExplore p (f :+: g) where
-  gexplore (L1 f) = gexplore f
-  gexplore (R1 g) = gexplore g
+  gexplore (L1 f) = gexplore @p f
+  gexplore (R1 g) = gexplore @p g
   {-# INLINE gexplore #-}
 
 instance GExplore p f => GExplore p (M1 _1 _2 f) where
-  gexplore (M1 f) = gexplore f
+  gexplore (M1 f) = gexplore @p f
   {-# INLINE gexplore #-}
 
 
 ------------------------------------------------------------------------------
--- | Generically derived continuation follower; intended to be used as the
--- first parameter for 'assay'.
+-- | An automatically generated (and unsafe) f-algebra capable of tearing down
+-- any functor 'f' with a 'Generic1' instance. 'explore' will 'guess' its way
+-- through any continuations it discovers.
 explore
-    :: (Generic1 f, GExplore f (Rep1 f))
-    => f (Free f a)
-    -> Free f a
-explore = gexplore . from1
+    :: forall f a
+     . (Generic1 f, GExplore f (Rep1 f))
+    => f a
+    -> a
+explore = gexplore @f . from1
 {-# INLINE explore #-}
 
