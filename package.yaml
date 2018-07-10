@@ -43,5 +43,5 @@ tests:
     - hspec
     - free
     - kan-extensions
-    - inspection-testing
+    - inspection-testing >= 0.3
     - deepseq
