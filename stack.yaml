@@ -3,3 +3,6 @@ resolver: lts-11.9
 packages:
 - .
 
+extra-deps:
+- inspection-testing-0.3
+
